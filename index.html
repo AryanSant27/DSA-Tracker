@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Mastery</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="theme-dark">
+    <div id="app-container">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="hexagon" class="logo-icon"></i>
+                    <span>DSA Mastery</span>
+                </div>
+                <div class="level-indicator">
+                    <span id="nav-level-text">Lvl 1</span>
+                    <div class="xp-bar-container-mini">
+                        <div class="xp-bar-fill-mini" id="nav-xp-fill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="nav-links">
+                <li><button class="nav-btn active" data-view="roadmap"><i data-lucide="map"></i> Roadmap</button></li>
+                <li><button class="nav-btn" data-view="skilltree"><i data-lucide="git-branch"></i> Skill Tree</button></li>
+                <li><button class="nav-btn" data-view="encyclopedia"><i data-lucide="book-open"></i> Encyclopedia</button></li>
+                <li><button class="nav-btn" data-view="stats"><i data-lucide="bar-chart-2"></i> Statistics</button></li>
+                <li><button class="nav-btn" data-view="search" id="nav-search-btn"><i data-lucide="search"></i> Search <kbd>⌘K</kbd></button></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="nav-btn" data-view="settings"><i data-lucide="settings"></i> Settings</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content">
+            <!-- Dynamic content will be injected here -->
+        </main>
+    </div>
+
+    <!-- Modals Overlay -->
+    <div id="modal-overlay" class="hidden">
+        <div id="modal-container">
+            <!-- Modal content injected here -->
+        </div>
+    </div>
+
+    <!-- Global Search Modal Template -->
+    <template id="tpl-search-modal">
+        <div class="search-modal">
+            <div class="search-header">
+                <i data-lucide="search"></i>
+                <input type="text" id="global-search-input" placeholder="Search problems, patterns, keywords..." autocomplete="off" autofocus>
+                <button id="close-search-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="search-results" id="search-results-container">
+                <!-- Search results injected here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Roadmap View Template -->
+    <template id="tpl-roadmap-view">
+        <div class="view-header">
+            <div>
+                <h1>42-Day Mastery Roadmap</h1>
+                <p class="subtitle">Your daily curriculum to interview readiness.</p>
+            </div>
+            <div class="streak-badge">
+                <i data-lucide="flame" class="streak-icon"></i>
+                <span id="header-streak-count">0 Day Streak</span>
+            </div>
+        </div>
+        
+        <div class="roadmap-grid" id="roadmap-grid">
+            <!-- Weeks and days injected here -->
+        </div>
+    </template>
+
+    <!-- Problem Detail Modal Template -->
+    <template id="tpl-problem-modal">
+        <div class="problem-modal">
+            <div class="problem-modal-header">
+                <div class="problem-title-area">
+                    <h2 id="modal-problem-name">Problem Name</h2>
+                    <div class="problem-badges">
+                        <span class="badge diff-badge" id="modal-problem-diff">Medium</span>
+                        <span class="badge lc-badge">LC #<span id="modal-problem-lc">0</span></span>
+                        <span class="badge time-badge"><i data-lucide="clock"></i> <span id="modal-problem-time">30</span>m</span>
+                        <span class="badge pattern-badge" id="modal-problem-pattern">Pattern</span>
+                    </div>
+                </div>
+                <button class="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="problem-modal-content">
+                <div class="problem-section">
+                    <h3>Why this problem today?</h3>
+                    <p id="modal-problem-why"></p>
+                </div>
+                
+                <div class="problem-grid-2col">
+                    <div class="problem-section">
+                        <h3>Core Concept</h3>
+                        <p id="modal-problem-concept"></p>
+                    </div>
+                    <div class="problem-section">
+                        <h3>Complexity</h3>
+                        <div class="complexity-box">
+                            <div><strong>Time:</strong> <span id="modal-problem-time-comp">O(N)</span></div>
+                            <div><strong>Space:</strong> <span id="modal-problem-space-comp">O(1)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="problem-section">
+                    <h3>Common Mistakes</h3>
+                    <ul id="modal-problem-mistakes" class="mistakes-list"></ul>
+                </div>
+
+                <div class="problem-section">
+                    <h3>Hint</h3>
+                    <div class="hint-box">
+                        <button class="reveal-hint-btn">Reveal Hint <i data-lucide="eye"></i></button>
+                        <p id="modal-problem-hint" class="hidden-hint"></p>
+                    </div>
+                </div>
+
+                <div class="problem-section">
+                    <h3>Companies</h3>
+                    <div id="modal-problem-companies" class="company-tags"></div>
+                </div>
+
+                <div class="problem-section">
+                    <h3>Personal Notes</h3>
+                    <textarea id="modal-problem-notes" placeholder="Jot down your thoughts, edge cases, or optimizations here..."></textarea>
+                </div>
+            </div>
+            
+            <div class="problem-modal-footer">
+                <button id="modal-complete-btn" class="btn-primary">
+                    <span class="btn-text">Mark as Completed</span>
+                    <span class="xp-reward">+<span id="modal-xp-reward">10</span> XP</span>
+                </button>
+                <div id="modal-completed-timestamp" class="timestamp hidden"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Skill Tree Template -->
+    <template id="tpl-skilltree-view">
+        <div class="view-header">
+            <div>
+                <h1>Skill Tree</h1>
+                <p class="subtitle">Unlock patterns and map your progression.</p>
+            </div>
+        </div>
+        <div class="skill-tree-container">
+            <svg id="skill-tree-svg" class="skill-tree-edges"></svg>
+            <div id="skill-tree-nodes" class="skill-tree-nodes-container">
+                <!-- Nodes injected here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Encyclopedia View Template -->
+    <template id="tpl-encyclopedia-view">
+        <div class="view-header">
+            <div>
+                <h1>Pattern Encyclopedia</h1>
+                <p class="subtitle">The definitive guide to recognizing and solving interview patterns.</p>
+            </div>
+        </div>
+        <div class="encyclopedia-layout">
+            <div class="pattern-list" id="encyclopedia-list">
+                <!-- List of patterns -->
+            </div>
+            <div class="pattern-detail" id="encyclopedia-detail">
+                <div class="empty-state">
+                    <i data-lucide="book" class="empty-icon"></i>
+                    <p>Select a pattern to view its details.</p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Stats Template -->
+    <template id="tpl-stats-view">
+        <div class="view-header">
+            <div>
+                <h1>Statistics & Progress</h1>
+                <p class="subtitle">Track your consistency and mastery.</p>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <!-- Stat Cards -->
+            <div class="stat-card">
+                <div class="stat-icon"><i data-lucide="zap"></i></div>
+                <div class="stat-info">
+                    <h4>Total XP</h4>
+                    <span id="stat-total-xp" class="stat-value">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i data-lucide="check-circle"></i></div>
+                <div class="stat-info">
+                    <h4>Problems Solved</h4>
+                    <span id="stat-total-solved" class="stat-value">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i data-lucide="flame"></i></div>
+                <div class="stat-info">
+                    <h4>Longest Streak</h4>
+                    <span id="stat-longest-streak" class="stat-value">0 Days</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i data-lucide="target"></i></div>
+                <div class="stat-info">
+                    <h4>Mandatory %</h4>
+                    <span id="stat-mandatory-percent" class="stat-value">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <h3>Contribution Graph</h3>
+            <div class="heatmap-container" id="contribution-heatmap">
+                <!-- Heatmap generated via JS -->
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h3>Badges Earned</h3>
+            <div class="badges-grid" id="badges-container">
+                <!-- Badges injected here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Settings Template -->
+    <template id="tpl-settings-view">
+        <div class="view-header">
+            <div>
+                <h1>Settings</h1>
+                <p class="subtitle">Manage your data and preferences.</p>
+            </div>
+        </div>
+        <div class="settings-content">
+            <div class="settings-card">
+                <h3>Data Management</h3>
+                <p class="settings-desc">Your progress is saved locally in your browser. Export it to back it up or move to another device.</p>
+                <div class="settings-actions">
+                    <button id="btn-export-data" class="btn-secondary"><i data-lucide="download"></i> Export Progress</button>
+                    <label class="btn-secondary file-upload-btn">
+                        <i data-lucide="upload"></i> Import Progress
+                        <input type="file" id="btn-import-data" accept=".json" style="display:none;">
+                    </label>
+                </div>
+            </div>
+            
+            <div class="settings-card danger-zone">
+                <h3>Danger Zone</h3>
+                <p class="settings-desc">Permanently delete all your progress, notes, and XP. This cannot be undone.</p>
+                <div class="settings-actions">
+                    <button id="btn-reset-data" class="btn-danger"><i data-lucide="trash-2"></i> Reset All Progress</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Data and App scripts -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
