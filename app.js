@@ -274,8 +274,27 @@ function initRoadmap() {
                         const prob = APP_DATA.problems[pid];
                         const xpAmount = prob.difficulty === 'Hard' ? 30 : prob.difficulty === 'Medium' ? 20 : 10;
                         State.markSolved(pid, xpAmount);
-                        // Re-render this view to show updated state
-                        initRoadmap(); 
+                        
+                        // Update DOM directly to prevent weird flashing/animation from full re-render
+                        const parent = checkbox.parentElement;
+                        checkbox.remove();
+                        const statusDiv = document.createElement('div');
+                        statusDiv.className = 'problem-status';
+                        statusDiv.innerHTML = '<i data-lucide="check-circle"></i>';
+                        parent.appendChild(statusDiv);
+                        lucide.createIcons();
+                        
+                        // Check if day is now completed
+                        const dayInfo = APP_DATA.curriculum.find(d => d.mandatory.includes(pid) || d.bonus.includes(pid));
+                        if (dayInfo) {
+                            const isCompleted = dayInfo.mandatory.length > 0 && dayInfo.mandatory.every(id => State.solved.includes(id));
+                            if (isCompleted) {
+                                item.closest('.day-card').classList.add('completed');
+                            }
+                        }
+                        
+                        const streakEl = document.getElementById('header-streak-count');
+                        if (streakEl) streakEl.textContent = `${State.streak} Day Streak`;
                     }
                 });
             }
@@ -313,7 +332,7 @@ function renderProblemItem(id, type, dayType) {
                 </div>
             </div>
             ${solved 
-                ? '<div class="problem-status"><i data-lucide="check-circle-2"></i></div>' 
+                ? '<div class="problem-status"><i data-lucide="check-circle"></i></div>' 
                 : '<div class="problem-checkbox"><div class="checkbox-box"></div></div>'
             }
         </div>
@@ -536,8 +555,12 @@ function openProblemModal(id) {
     // Setup LeetCode Link
     const lcBtn = document.getElementById('modal-lc-link');
     if (lcBtn) {
+        // Use onclick and window.open to guarantee tab opening even if href routing is caught by something
         lcBtn.href = `https://leetcode.com/problems/${id}/`;
-        lcBtn.target = "_blank";
+        lcBtn.onclick = (e) => {
+            e.preventDefault();
+            window.open(`https://leetcode.com/problems/${id}/`, '_blank');
+        };
     }
     
     document.getElementById('modal-problem-why').textContent = prob.whyToday;
@@ -567,7 +590,7 @@ function openProblemModal(id) {
     if (State.solved.includes(id)) {
         completeBtn.classList.add('hidden');
         timestampDiv.classList.remove('hidden');
-        timestampDiv.innerHTML = `<i data-lucide="check-circle-2"></i> Completed`;
+        timestampDiv.innerHTML = `<i data-lucide="check-circle"></i> Completed`;
     } else {
         completeBtn.classList.remove('hidden');
         timestampDiv.classList.add('hidden');
