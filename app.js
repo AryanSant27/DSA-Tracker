@@ -55,7 +55,13 @@ const State = {
             console.warn("Could not load from backend, using local defaults", e);
         }
         updateGlobalUI();
-        if (this.currentView === 'roadmap') initRoadmap();
+        if (this.currentView === 'roadmap') {
+            initRoadmap();
+        } else if (this.currentView === 'skilltree') {
+            initSkillTree();
+        } else if (this.currentView === 'stats') {
+            initStats();
+        }
     },
     
     saveDebounceTimer: null,
@@ -121,10 +127,21 @@ const State = {
 };
 
 // UI Initialization & Navigation
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
-    await State.init(); // Wait for sync before loading initial view
+    
+    // Inject modal template once
+    const modalContainer = document.getElementById('modal-container');
+    const modalTpl = document.getElementById('tpl-problem-modal');
+    if (modalContainer && modalTpl && modalContainer.innerHTML.trim() === '') {
+        modalContainer.appendChild(modalTpl.content.cloneNode(true));
+    }
+    
+    // Optimistic UI load
     loadView('roadmap');
+    
+    // Background sync
+    State.init();
     
     // Bind search
     document.getElementById('nav-search-btn').addEventListener('click', openSearch);
@@ -262,11 +279,18 @@ function initRoadmap() {
                     }
                 });
             }
-            item.addEventListener('click', () => openProblemModal(item.dataset.id));
+            item.addEventListener('click', () => {
+                // Force close search if it was open
+                document.getElementById('modal-overlay').classList.add('hidden');
+                setTimeout(() => openProblemModal(item.dataset.id), 50);
+            });
         });
         
         daysContainer.appendChild(card);
     });
+    
+    // Re-create icons for the newly rendered roadmap items
+    lucide.createIcons();
 }
 
 function renderProblemItem(id, type, dayType) {
@@ -534,45 +558,39 @@ function openProblemModal(id) {
     };
     document.querySelector('.reveal-hint-btn').style.display = 'flex';
     
-    const comps = document.getElementById('modal-problem-companies');
-    comps.innerHTML = prob.companies.map(c => `<span class="company-tag">${c}</span>`).join('');
+    const companiesHtml = prob.companies.map(c => `<span class="company-tag">${c}</span>`).join('');
+    document.getElementById('modal-problem-companies').innerHTML = companiesHtml;
     
-    const notesEl = document.getElementById('modal-problem-notes');
-    notesEl.value = State.notes[id] || '';
-    
-    const btn = document.getElementById('modal-complete-btn');
-    const timestamp = document.getElementById('modal-completed-timestamp');
+    const completeBtn = document.getElementById('modal-complete-btn');
+    const timestampDiv = document.getElementById('modal-completed-timestamp');
     
     if (State.solved.includes(id)) {
-        btn.innerHTML = `<i data-lucide="check"></i> Completed`;
-        btn.className = 'btn-primary completed-state';
-        btn.onclick = null;
-        timestamp.textContent = "Solved recently";
-        timestamp.classList.remove('hidden');
+        completeBtn.classList.add('hidden');
+        timestampDiv.classList.remove('hidden');
+        timestampDiv.innerHTML = `<i data-lucide="check-circle-2"></i> Completed`;
     } else {
-        const xpAmount = prob.difficulty === 'Hard' ? 30 : prob.difficulty === 'Medium' ? 20 : 10;
-        document.getElementById('modal-xp-reward').textContent = xpAmount;
-        btn.innerHTML = `<span class="btn-text">Mark as Completed</span><span class="xp-reward">+<span id="modal-xp-reward">${xpAmount}</span> XP</span>`;
-        btn.className = 'btn-primary';
-        timestamp.classList.add('hidden');
+        completeBtn.classList.remove('hidden');
+        timestampDiv.classList.add('hidden');
+        document.getElementById('modal-xp-reward').textContent = prob.difficulty === 'Hard' ? '30' : prob.difficulty === 'Medium' ? '20' : '10';
         
-        btn.onclick = () => {
-            State.saveNote(id, notesEl.value);
+        completeBtn.onclick = () => {
+            const xpAmount = prob.difficulty === 'Hard' ? 30 : prob.difficulty === 'Medium' ? 20 : 10;
             State.markSolved(id, xpAmount);
-            closeModal();
-            loadView('roadmap'); // refresh roadmap state
+            triggerConfetti();
+            overlay.classList.add('hidden');
+            if (State.currentView === 'roadmap') initRoadmap();
+            if (State.currentView === 'skilltree') initSkillTree();
         };
     }
     
-    // Save note when typing finishes (simple debounce)
-    let typingTimer;
-    notesEl.onkeyup = () => {
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {
-            State.saveNote(id, notesEl.value);
-        }, 1000);
+    // Notes logic
+    const notesArea = document.getElementById('modal-problem-notes');
+    notesArea.value = State.notes[id] || '';
+    notesArea.oninput = (e) => {
+        State.notes[id] = e.target.value;
+        State.save();
     };
-    
+
     lucide.createIcons();
     
     overlay.querySelector('.close-modal-btn').onclick = closeModal;
@@ -590,21 +608,35 @@ function closeModal() {
 // SEARCH LOGIC
 // ==========================================
 function openSearch() {
-    // We reuse modal overlay but inject search template
     const overlay = document.getElementById('modal-overlay');
     const container = document.getElementById('modal-container');
-    container.innerHTML = ''; // clear
     
-    const tpl = document.getElementById('tpl-search-modal');
-    container.appendChild(tpl.content.cloneNode(true));
+    // Clear out the problem modal and inject the search modal
+    container.innerHTML = '';
+    container.appendChild(document.getElementById('tpl-search-modal').content.cloneNode(true));
     
     overlay.classList.remove('hidden');
-    const input = document.getElementById('global-search-input');
-    input.focus();
-    lucide.createIcons();
     
-    document.getElementById('close-search-btn').onclick = closeSearch;
-    overlay.onclick = (e) => { if(e.target === overlay) closeSearch(); }
+    const input = document.getElementById('global-search-input');
+    const resultsContainer = document.getElementById('search-results-container');
+    
+    document.getElementById('close-search-btn').onclick = () => {
+        closeSearch();
+        // Restore problem modal
+        container.innerHTML = '';
+        container.appendChild(document.getElementById('tpl-problem-modal').content.cloneNode(true));
+    };
+    
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeSearch();
+            // Restore problem modal
+            container.innerHTML = '';
+            container.appendChild(document.getElementById('tpl-problem-modal').content.cloneNode(true));
+        }
+    };
+    
+    lucide.createIcons();
     
     input.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
@@ -634,12 +666,11 @@ function openSearch() {
 
 function closeSearch() {
     document.getElementById('modal-overlay').classList.add('hidden');
-    // revert to empty so problem modal can use it later
-    setTimeout(() => {
-        const container = document.getElementById('modal-container');
-        container.innerHTML = '';
-        container.appendChild(document.getElementById('tpl-problem-modal').content.cloneNode(true));
-    }, 200);
+    // We don't want to revert modal-container to empty, as it needs to hold the problem modal template
+    const searchInput = document.getElementById('global-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+    }
 }
 
 // Confetti Effect (mock)
