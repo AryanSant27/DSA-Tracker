@@ -146,6 +146,9 @@
             </div>
             
             <div class="problem-modal-footer">
+                <a id="modal-lc-link" href="#" target="_blank" class="btn-secondary">
+                    <i data-lucide="external-link"></i> Solve on LeetCode
+                </a>
                 <button id="modal-complete-btn" class="btn-primary">
                     <span class="btn-text">Mark as Completed</span>
                     <span class="xp-reward">+<span id="modal-xp-reward">10</span> XP</span>
@@ -256,6 +259,15 @@
             </div>
         </div>
         <div class="settings-content">
+            <div class="settings-card">
+                <h3>Link Your Phone (Sync)</h3>
+                <p class="settings-desc">Scan the QR code to open this app on your phone with your synchronized state.</p>
+                <div class="settings-actions">
+                    <button id="btn-generate-sync" class="btn-secondary"><i data-lucide="smartphone"></i> Generate Sync QR</button>
+                </div>
+                <div id="qr-code-container" class="hidden" style="margin-top: 16px; padding: 16px; background: white; width: max-content; border-radius: 8px;"></div>
+            </div>
+            
             <div class="settings-card">
                 <h3>Data Management</h3>
                 <p class="settings-desc">Your progress is saved locally in your browser. Export it to back it up or move to another device.</p>

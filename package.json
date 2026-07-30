@@ -1,0 +1,29 @@
+{
+  "name": "dsa-prep",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000D\u0000S\u0000A\u0000-\u0000T\u0000r\u0000a\u0000c\u0000k\u0000e\u0000r\u0000\r\u0000 \u0000",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AryanSant27/DSA-Tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AryanSant27/DSA-Tracker/issues"
+  },
+  "homepage": "https://github.com/AryanSant27/DSA-Tracker#readme",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.9.1"
+  }
+}

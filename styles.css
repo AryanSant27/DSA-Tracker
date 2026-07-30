@@ -63,6 +63,7 @@ body.theme-dark {
     flex-direction: column;
     padding: 24px 16px;
     flex-shrink: 0;
+    z-index: 50;
 }
 
 .sidebar-header {
@@ -223,10 +224,6 @@ body.theme-dark {
     padding-bottom: 60px;
 }
 
-.roadmap-week {
-    /* container for a week */
-}
-
 .roadmap-week-header {
     font-size: 18px;
     font-weight: 600;
@@ -346,6 +343,31 @@ body.theme-dark {
 
 .problem-status {
     color: var(--success);
+}
+
+/* Checkbox Styles */
+.problem-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.checkbox-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border-light);
+    transition: var(--transition);
+}
+
+.problem-checkbox:hover .checkbox-box {
+    border-color: var(--accent);
+    background-color: rgba(94, 106, 210, 0.1);
 }
 
 /* Modals Overlay */
@@ -594,6 +616,8 @@ body.theme-dark {
     justify-content: space-between;
     align-items: center;
     background-color: var(--bg-sidebar);
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .btn-primary {
@@ -873,7 +897,6 @@ body.theme-dark {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: auto;
-    /* Hide scrollbars for cleaner look */
     -ms-overflow-style: none;  
     scrollbar-width: none;  
 }
@@ -1005,6 +1028,7 @@ body.theme-dark {
 .settings-actions {
     display: flex;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .btn-secondary {
@@ -1021,6 +1045,7 @@ body.theme-dark {
     gap: 8px;
     transition: var(--transition);
     font-family: var(--font-sans);
+    text-decoration: none;
 }
 
 .btn-secondary:hover { background-color: var(--bg-active); }
@@ -1055,6 +1080,7 @@ body.theme-dark {
 .search-modal {
     background-color: var(--bg-sidebar);
     width: 600px;
+    max-width: 95vw;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-lg);
@@ -1062,7 +1088,7 @@ body.theme-dark {
     flex-direction: column;
     overflow: hidden;
     position: absolute;
-    top: 20vh;
+    top: 10vh;
 }
 
 .search-header {
@@ -1082,6 +1108,7 @@ body.theme-dark {
     color: var(--text-primary);
     font-size: 18px;
     font-family: var(--font-sans);
+    width: 100%;
 }
 
 #global-search-input:focus { outline: none; }
@@ -1145,4 +1172,106 @@ body.theme-dark {
     background-color: var(--accent);
     z-index: 9999;
     pointer-events: none;
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS
+========================================= */
+@media (max-width: 768px) {
+    #app-container {
+        flex-direction: column;
+    }
+    
+    /* Convert Sidebar to Bottom Navigation */
+    #sidebar {
+        width: 100vw;
+        height: auto;
+        padding: 12px 16px;
+        order: 2; /* Move to bottom */
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        background-color: var(--bg-sidebar);
+        position: fixed;
+        bottom: 0;
+        z-index: 100;
+    }
+    
+    .sidebar-header, .sidebar-footer {
+        display: none; /* Hide logo and settings on small mobile bar to save space */
+    }
+    
+    .nav-links {
+        flex-direction: row;
+        justify-content: space-around;
+        width: 100%;
+        gap: 0;
+    }
+    
+    .nav-btn {
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 4px;
+        justify-content: center;
+        align-items: center;
+        font-size: 11px;
+        text-align: center;
+        border-radius: var(--radius-sm);
+    }
+    
+    .nav-btn kbd {
+        display: none;
+    }
+
+    #main-content {
+        padding: 24px 16px;
+        padding-bottom: 90px; /* Space for bottom nav */
+        order: 1;
+    }
+    
+    .view-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .roadmap-days, .stats-grid, .badges-grid {
+        grid-template-columns: 1fr; /* Single column layout */
+    }
+    
+    .encyclopedia-layout {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .pattern-list {
+        width: 100%;
+        max-height: 200px;
+        padding-right: 0;
+    }
+    
+    /* Modals should take up most of the screen */
+    #modal-container {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+    
+    .problem-modal-content {
+        padding: 20px;
+    }
+    
+    .problem-modal-header, .problem-modal-footer {
+        padding: 16px 20px;
+    }
+    
+    .problem-grid-2col {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .search-modal {
+        top: 5vh;
+    }
 }

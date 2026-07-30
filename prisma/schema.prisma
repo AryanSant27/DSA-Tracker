@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model UserState {
+  userId    String   @id
+  xp        Int      @default(0)
+  streak    Int      @default(0)
+  solved    Json     @default("[]")
+  badges    Json     @default("[]")
+  notes     Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}

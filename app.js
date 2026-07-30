@@ -1,19 +1,85 @@
 // State Management
 const State = {
     currentView: 'roadmap',
-    xp: parseInt(localStorage.getItem('dsa_xp')) || 0,
-    streak: parseInt(localStorage.getItem('dsa_streak')) || 0,
-    solved: JSON.parse(localStorage.getItem('dsa_solved')) || [],
-    badges: JSON.parse(localStorage.getItem('dsa_badges_earned')) || [],
-    notes: JSON.parse(localStorage.getItem('dsa_notes')) || {},
+    userId: null,
+    xp: 0,
+    streak: 0,
+    solved: [],
+    badges: [],
+    notes: {},
+    
+    async init() {
+        // Check URL for userId (from QR code scan)
+        const params = new URLSearchParams(window.location.search);
+        let idFromUrl = params.get('userId');
+        
+        if (idFromUrl) {
+            localStorage.setItem('dsa_user_id', idFromUrl);
+            this.userId = idFromUrl;
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            this.userId = localStorage.getItem('dsa_user_id');
+            if (!this.userId) {
+                this.userId = crypto.randomUUID();
+                localStorage.setItem('dsa_user_id', this.userId);
+            }
+        }
+        
+        await this.load();
+    },
+
+    async load() {
+        try {
+            // Fetch from backend
+            const response = await fetch(`/api/sync?userId=${this.userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (typeof data === 'string') {
+                    // Sometimes vercel kv returns stringified json
+                    const parsed = JSON.parse(data);
+                    this.xp = parsed.xp || 0;
+                    this.streak = parsed.streak || 0;
+                    this.solved = parsed.solved || [];
+                    this.badges = parsed.badges || [];
+                    this.notes = parsed.notes || {};
+                } else {
+                    this.xp = data.xp || 0;
+                    this.streak = data.streak || 0;
+                    this.solved = data.solved || [];
+                    this.badges = data.badges || [];
+                    this.notes = data.notes || {};
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load from backend, using local defaults", e);
+        }
+        updateGlobalUI();
+        if (this.currentView === 'roadmap') initRoadmap();
+    },
+    
+    saveDebounceTimer: null,
     
     save() {
-        localStorage.setItem('dsa_xp', this.xp);
-        localStorage.setItem('dsa_streak', this.streak);
-        localStorage.setItem('dsa_solved', JSON.stringify(this.solved));
-        localStorage.setItem('dsa_badges_earned', JSON.stringify(this.badges));
-        localStorage.setItem('dsa_notes', JSON.stringify(this.notes));
+        // Update local UI immediately
         updateGlobalUI();
+        
+        // Debounce backend save
+        clearTimeout(this.saveDebounceTimer);
+        this.saveDebounceTimer = setTimeout(async () => {
+            const data = {
+                xp: this.xp, streak: this.streak, solved: this.solved, badges: this.badges, notes: this.notes
+            };
+            try {
+                await fetch(`/api/sync?userId=${this.userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch(e) {
+                console.error("Failed to sync to backend", e);
+            }
+        }, 1000);
     },
     
     markSolved(problemId, xpReward) {
@@ -32,7 +98,12 @@ const State = {
     
     reset() {
         if (confirm("Are you sure you want to delete all your progress? This cannot be undone.")) {
-            localStorage.clear();
+            this.xp = 0;
+            this.streak = 0;
+            this.solved = [];
+            this.badges = [];
+            this.notes = {};
+            this.save();
             location.reload();
         }
     },
@@ -50,16 +121,14 @@ const State = {
 };
 
 // UI Initialization & Navigation
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initNavigation();
-    updateGlobalUI();
+    await State.init(); // Wait for sync before loading initial view
     loadView('roadmap');
     
     // Bind search
     document.getElementById('nav-search-btn').addEventListener('click', openSearch);
     document.getElementById('close-search-btn').addEventListener('click', closeSearch);
-    
-    // Bind settings if on settings page later
 });
 
 function initNavigation() {
@@ -176,8 +245,23 @@ function initRoadmap() {
             </div>
         `;
         
-        // Bind clicks
+        // Bind clicks for the items
         card.querySelectorAll('.problem-item').forEach(item => {
+            // Prevent checkbox click from opening modal
+            const checkbox = item.querySelector('.problem-checkbox');
+            if (checkbox) {
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const pid = item.dataset.id;
+                    if (!State.solved.includes(pid)) {
+                        const prob = APP_DATA.problems[pid];
+                        const xpAmount = prob.difficulty === 'Hard' ? 30 : prob.difficulty === 'Medium' ? 20 : 10;
+                        State.markSolved(pid, xpAmount);
+                        // Re-render this view to show updated state
+                        initRoadmap(); 
+                    }
+                });
+            }
             item.addEventListener('click', () => openProblemModal(item.dataset.id));
         });
         
@@ -204,7 +288,10 @@ function renderProblemItem(id, type, dayType) {
                     <span>${prob.estimatedTime}m</span>
                 </div>
             </div>
-            ${solved ? '<div class="problem-status"><i data-lucide="check-circle-2"></i></div>' : ''}
+            ${solved 
+                ? '<div class="problem-status"><i data-lucide="check-circle-2"></i></div>' 
+                : '<div class="problem-checkbox"><div class="checkbox-box"></div></div>'
+            }
         </div>
     `;
 }
@@ -361,6 +448,23 @@ function initSettings() {
     document.getElementById('btn-export-data').addEventListener('click', () => State.exportData());
     document.getElementById('btn-reset-data').addEventListener('click', () => State.reset());
     
+    // QR Code Sync Generation
+    document.getElementById('btn-generate-sync').addEventListener('click', () => {
+        const qrContainer = document.getElementById('qr-code-container');
+        const origin = window.location.origin === "null" || window.location.origin === "file://" 
+            ? "https://your-vercel-domain.vercel.app" 
+            : window.location.origin;
+        const syncUrl = `${origin}${window.location.pathname}?userId=${State.userId}`;
+        
+        const qrImg = document.createElement('img');
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(syncUrl)}`;
+        qrImg.className = 'qr-code-img';
+        
+        qrContainer.innerHTML = '';
+        qrContainer.appendChild(qrImg);
+        qrContainer.classList.remove('hidden');
+    });
+
     document.getElementById('btn-import-data').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -369,11 +473,12 @@ function initSettings() {
                 try {
                     const data = JSON.parse(evt.target.result);
                     if (data.xp !== undefined) {
-                        localStorage.setItem('dsa_xp', data.xp);
-                        localStorage.setItem('dsa_streak', data.streak || 0);
-                        localStorage.setItem('dsa_solved', JSON.stringify(data.solved || []));
-                        localStorage.setItem('dsa_badges_earned', JSON.stringify(data.badges || []));
-                        localStorage.setItem('dsa_notes', JSON.stringify(data.notes || {}));
+                        State.xp = data.xp;
+                        State.streak = data.streak || 0;
+                        State.solved = data.solved || [];
+                        State.badges = data.badges || [];
+                        State.notes = data.notes || {};
+                        State.save();
                         alert("Data imported successfully! Reloading...");
                         location.reload();
                     }
@@ -403,6 +508,13 @@ function openProblemModal(id) {
     document.getElementById('modal-problem-lc').textContent = prob.lcNumber;
     document.getElementById('modal-problem-time').textContent = prob.estimatedTime;
     document.getElementById('modal-problem-pattern').textContent = prob.pattern;
+    
+    // Setup LeetCode Link
+    const lcBtn = document.getElementById('modal-lc-link');
+    if (lcBtn) {
+        lcBtn.href = `https://leetcode.com/problems/${id}/`;
+        lcBtn.target = "_blank";
+    }
     
     document.getElementById('modal-problem-why').textContent = prob.whyToday;
     document.getElementById('modal-problem-concept').textContent = prob.concept;
